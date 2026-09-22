@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "model-serving-lab"
+version = "0.1.0"
+description = "Independent, offline-first model-serving reliability laboratory"
+requires-python = ">=3.12"
+dependencies = ["fastapi==0.141.1", "httpx==0.28.1", "uvicorn==0.53.0"]
+
+[project.optional-dependencies]
+test = ["pytest==8.4.2", "pytest-asyncio==0.26.0", "ruff>=0.6,<1"]
+
+[tool.setuptools.packages.find]
+include = ["serving_lab*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E9", "F", "I"]
