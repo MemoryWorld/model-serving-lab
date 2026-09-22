@@ -1,0 +1,4 @@
+# Deliberately broken entrypoint for the CI rollback drill; not a production image.
+ARG BASE=model-serving-lab:delivery
+FROM ${BASE}
+CMD ["python", "-c", "raise SystemExit(13)"]

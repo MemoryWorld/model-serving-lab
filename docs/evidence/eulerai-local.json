@@ -1,0 +1,86 @@
+{
+  "recorded_at_utc": "2026-09-22T17:09:42.922480+00:00",
+  "scope": "Independent local demonstration; not employer historical evidence",
+  "python_full_suite": {
+    "passed": 29,
+    "skipped": 0,
+    "real_postgres": true
+  },
+  "lint": "passed",
+  "bento_build": {
+    "version": "1.4.39",
+    "tag": "model_serving_lab:local-euler-validation",
+    "result": "succeeded"
+  },
+  "verified_release": {
+    "image": "sha256:eff367169ea51611f8cb27eacee7e08072f9a56528f884a2185e69e5bc5671e9",
+    "profile": "cpu",
+    "project": "ms-lab-euler-audit",
+    "bento_port": "18877",
+    "retrieval_port": "18876",
+    "model": "Qwen/Qwen3-0.6B"
+  },
+  "restart_persistence": {
+    "postgres_and_apps_restarted": true,
+    "canary_reinserted": false,
+    "existing_document_found": true
+  },
+  "broken_release_attempt": {
+    "status": "release_failed",
+    "candidate": {
+      "image": "sha256:f15a906a077717d2292287d01bd77b62518cd3425144c7f80ae884d421b048c5",
+      "profile": "cpu",
+      "project": "ms-lab-euler-audit",
+      "bento_port": "18877",
+      "retrieval_port": "18876",
+      "model": "Qwen/Qwen3-0.6B"
+    },
+    "rollback": "verified",
+    "rollback_checks": {
+      "inference": {
+        "model": "offline-small",
+        "non_streaming": true,
+        "sse_done": true
+      },
+      "retrieval": {
+        "ready": true,
+        "extension": "0.8.6",
+        "dimension": 32,
+        "embedding_model": "demo-lexical-v1",
+        "search": "exact_cosine"
+      },
+      "persisted_document_found": true
+    }
+  },
+  "gpu_preflight": {
+    "devices": [
+      {
+        "name": "NVIDIA GeForce RTX 2060",
+        "driver": "591.59",
+        "compute_capability": 7.5,
+        "total_mib": 6144,
+        "free_mib": 4672
+      }
+    ],
+    "linux_docker": true,
+    "hardware_floor_passed": true,
+    "minimum_free_mib": 4096,
+    "container_gpu_verified": true,
+    "probe_image": "pgvector/pgvector:0.8.6-pg17-bookworm",
+    "probe_image_id": "sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f",
+    "ready_for_canary": true,
+    "model_inference_verified": false,
+    "limits": [
+      "Memory floor is not a measured model VRAM requirement.",
+      "Driver/CUDA image compatibility still requires a successful inference canary.",
+      "No model download, host migration or traffic switch was performed by this check."
+    ]
+  },
+  "remote_ci": "Configured; no remote run claimed in this local evidence",
+  "remaining": [
+    "Real vLLM model load and Qwen generation",
+    "GPU release/rollback drill",
+    "Azure deployment or benchmark",
+    "Any historical employer migration claim"
+  ]
+}

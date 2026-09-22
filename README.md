@@ -3,16 +3,57 @@
 A runnable model-serving reliability laboratory: **FastAPI gateway → bounded
 admission → OpenAI-compatible vLLM/Qwen serving**, with real SSE delivery,
 disconnect cleanup, controlled failure experiments and Prometheus-format metrics.
+It also provides a **real BentoML service**, **PostgreSQL/pgvector retrieval**,
+and a container deployment canary with a failed-release rollback drill.
 
 **This is a new, independent public technical example. It is not EulerAI source
 code, a reconstruction of an employer's proprietary system, or evidence of a
 historical company deployment.** All examples are fictional and public. The
-choice of vLLM is a subsequent modernization exercise alongside prior BentoML
-experience; this repository does not claim to contain that earlier work.
+current BentoML and vLLM implementations are independent new exercises; this
+repository does not claim to contain earlier employer work.
 
 The default is fully offline and deterministic. It demonstrates serving
 mechanics, not model intelligence. Live mode requires explicit configuration and
 never falls back to offline text when the model server fails.
+
+## BentoML + persistent retrieval + verified deployment
+
+For the complete CPU demonstration, install Docker with a Linux engine, then:
+
+```sh
+python -m pip install -e '.[test,bento,postgres]'
+docker build -f Dockerfile.delivery -t model-serving-lab:delivery .
+docker pull pgvector/pgvector:0.8.6-pg17-bookworm
+python scripts/deploy.py --project serving-demo --image model-serving-lab:delivery
+python scripts/rag_demo.py "What about the fire exit door?"
+```
+
+The Bento gateway is at `http://127.0.0.1:18877/gateway/docs`; retrieval is at
+`http://127.0.0.1:18876/docs`. The database stays on a private Compose network.
+Set `BENTO_PORT` / `RETRIEVAL_PORT` to choose other loopback ports. On PowerShell,
+use `$env:BENTO_PORT='18879'` rather than POSIX environment-assignment syntax.
+
+The deployment script resolves the app image to an immutable local ID, starts
+the stack, checks backend readiness, requests normal and streaming generation,
+and inserts/searches a fictional document. A failed update restores the last
+verified image and repeats the canary. Release JSON is in `results/releases/`;
+secrets, prompts and completions are omitted. This is a single-host update with
+possible downtime, not a zero-downtime rollout. The database volume is retained.
+
+Retrieval supports document upsert, namespace filtering, cosine top-k and a
+database-wide dimension/model compatibility guard. Default embeddings are
+32-dimensional **deterministic token hashes**, not a trained embedding model.
+The default generator is also deterministic. The RAG client demonstrates data
+flow and source attribution; neither component implies semantic/answer quality.
+For real embeddings, configure a separate `EMBEDDING_MODEL` / dimension and
+supply matching vectors on insert and query. See [the full delivery guide](docs/delivery.md).
+
+The new [delivery workflow](.github/workflows/delivery.yml) tests actual
+PostgreSQL, builds a Bento package and a Linux image, deploys the CPU stack,
+verifies persistence across restart, and injects a broken image to verify rollback.
+It needs no cloud account or secret. GPU execution is explicit and separate;
+see [GPU migration procedure](docs/gpu-migration.md) and
+[recorded validation boundaries](docs/eulerai-coverage.md).
 
 ## Run locally
 

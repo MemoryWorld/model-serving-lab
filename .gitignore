@@ -6,4 +6,7 @@ __pycache__/
 .env
 results/*.json
 results/*.csv
+results/releases/
+results/bentoml/
+results/*.log
 !.gitkeep

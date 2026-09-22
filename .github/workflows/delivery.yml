@@ -1,0 +1,69 @@
+name: bento-pgvector-delivery
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.6-pg17-bookworm
+        env:
+          POSTGRES_DB: serving_lab_test
+          POSTGRES_USER: lab
+          POSTGRES_PASSWORD: local-ci-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U lab -d serving_lab_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_PG_DSN: postgresql://lab:local-ci-password@127.0.0.1:5432/serving_lab_test
+      BENTOML_DO_NOT_TRACK: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: python -m pip install -e '.[test,bento,postgres]'
+      - run: python -m ruff check .
+      - run: python -m pytest -q
+      - name: Build a real Bento package
+        run: bentoml build --version "ci-${GITHUB_SHA}"
+  deployment-and-rollback:
+    runs-on: ubuntu-latest
+    env:
+      BENTO_PORT: "18877"
+      RETRIEVAL_PORT: "18876"
+      BENTOML_DO_NOT_TRACK: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: python -m pip install -e .
+      - name: Build application image and fetch explicit database image
+        run: |
+          docker build -f Dockerfile.delivery -t model-serving-lab:delivery .
+          docker pull pgvector/pgvector:0.8.6-pg17-bookworm
+      - name: Deploy and verify offline gateway generation and persisted retrieval
+        run: python scripts/deploy.py --project ms-lab-ci --image model-serving-lab:delivery
+      - name: Restart PostgreSQL and applications without deleting the named volume
+        run: |
+          docker compose -p ms-lab-ci -f compose.delivery.yaml stop
+          docker compose -p ms-lab-ci -f compose.delivery.yaml up -d --wait --wait-timeout 120
+          python scripts/stack_smoke.py --gateway http://127.0.0.1:18877/gateway --retrieval http://127.0.0.1:18876 --verify-only
+      - name: Inject a broken release and require verified rollback
+        run: |
+          docker build -f tests/fixtures/Dockerfile.failed-release -t model-serving-lab:broken .
+          if python scripts/deploy.py --project ms-lab-ci --image model-serving-lab:broken; then
+            echo 'Broken release unexpectedly succeeded'
+            exit 1
+          fi
+          python -c "import json; p=json.load(open('results/releases/ms-lab-ci.last-attempt.json')); assert p['rollback'] == 'verified'"
+          python scripts/stack_smoke.py --gateway http://127.0.0.1:18877/gateway --retrieval http://127.0.0.1:18876 --verify-only
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verified-release-and-rollback
+          path: results/releases/*.json
+      - name: Stop this CI project (never delete database volumes)
+        if: always()
+        run: docker compose -p ms-lab-ci -f compose.delivery.yaml down
