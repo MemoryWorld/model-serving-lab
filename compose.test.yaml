@@ -1,0 +1,4 @@
+# Optional loopback-only database port for local integration tests.
+services:
+  postgres:
+    ports: ["127.0.0.1:${PG_TEST_PORT:-18875}:5432"]

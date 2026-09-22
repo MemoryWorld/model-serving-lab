@@ -1,0 +1,56 @@
+# Local and CI deployment; use the same built image for Bento and retrieval.
+services:
+  bento:
+    image: ${LAB_IMAGE:-model-serving-lab:delivery}
+    build:
+      context: .
+      dockerfile: Dockerfile.delivery
+    ports: ["127.0.0.1:${BENTO_PORT:-18877}:8787"]
+    environment:
+      MODE: offline
+      API_KEY: ${API_KEY:-}
+      ENABLE_FAULTS: "false"
+      BENTOML_DO_NOT_TRACK: "true"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8787/gateway/readyz', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+    stop_grace_period: 75s
+  retrieval:
+    image: ${LAB_IMAGE:-model-serving-lab:delivery}
+    command: [sh, -c, "python -m serving_lab.retrieval init && exec uvicorn serving_lab.retrieval:create_retrieval_app --factory --host 0.0.0.0 --port 8786 --workers 1 --no-access-log"]
+    ports: ["127.0.0.1:${RETRIEVAL_PORT:-18876}:8786"]
+    environment:
+      PG_DSN: postgresql://lab:local-demo-password@postgres:5432/serving_lab
+      API_KEY: ${API_KEY:-}
+    depends_on:
+      postgres: {condition: service_healthy}
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8786/readyz', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  postgres:
+    image: pgvector/pgvector:0.8.6-pg17-bookworm
+    environment:
+      POSTGRES_DB: serving_lab
+      POSTGRES_USER: lab
+      POSTGRES_PASSWORD: local-demo-password
+    volumes: [pgvector-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U lab -d serving_lab"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  pgvector-data:

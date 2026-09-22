@@ -1,0 +1,9 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 BENTOML_DO_NOT_TRACK=true BENTOML_HOME=/tmp/bentoml
+WORKDIR /app
+COPY pyproject.toml README.md bentofile.yaml ./
+COPY serving_lab ./serving_lab
+RUN pip install --no-cache-dir '.[bento,postgres]' && useradd --uid 10001 --create-home app
+USER app
+EXPOSE 8787 8786
+CMD ["bentoml", "serve", "serving_lab.bento_service:ModelServingLab", "--host", "0.0.0.0", "--port", "8787"]

@@ -1,0 +1,16 @@
+service: serving_lab.bento_service:ModelServingLab
+description: Independent model-serving lab with an authenticated ASGI gateway
+include:
+  - serving_lab/**/*.py
+  - README.md
+python:
+  packages:
+    - bentoml==1.4.39
+    - fastapi==0.141.1
+    - httpx==0.28.1
+    - uvicorn==0.53.0
+docker:
+  python_version: "3.12"
+envs:
+  - name: BENTOML_DO_NOT_TRACK
+    value: "true"
