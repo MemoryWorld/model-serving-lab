@@ -59,4 +59,4 @@ counts were zero. This is a local reliability observation, not a capacity claim.
   or executed locally in this implementation.
 - GPU/vLLM configuration is supplied for subsequent hardware verification. No
   GPU inference, VRAM measurement, quantization or deployment success is claimed.
-- CI files are supplied; remote execution is pending repository publication.
+- [GitHub Actions run 35739488792](https://github.com/MemoryWorld/model-serving-lab/actions/runs/35739488792) passed on the published implementation commit `cbd2af9`: Python 3.12 and 3.13 lint/tests/offline experiments succeeded, and the CPU Docker image built, started and returned a successful readiness probe. GPU inference remains untested.
